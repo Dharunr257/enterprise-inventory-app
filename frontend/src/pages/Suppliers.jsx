@@ -208,6 +208,7 @@ const Suppliers = () => {
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
         title={selectedSupplier ? 'Edit Supplier' : 'Create Supplier Profile'}
+        type="drawer"
         footer={
           <>
             <button className="btn btn-secondary" onClick={() => setIsFormOpen(false)}>Cancel</button>

@@ -180,6 +180,7 @@ const Categories = () => {
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
         title={selectedCategory ? 'Edit Category' : 'Create New Category'}
+        type="drawer"
         footer={
           <>
             <button className="btn btn-secondary" onClick={() => setIsFormOpen(false)}>Cancel</button>

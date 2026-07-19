@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 
-const Modal = ({ isOpen, onClose, title, children, footer }) => {
-  // Listen for Escape key to close the modal
+const Modal = ({ isOpen, onClose, title, children, footer, type = 'modal' }) => {
+  // Listen for Escape key to close the modal/drawer
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') onClose();
@@ -20,29 +20,41 @@ const Modal = ({ isOpen, onClose, title, children, footer }) => {
 
   if (!isOpen) return null;
 
+  const isDrawer = type === 'drawer';
+  const overlayClass = isDrawer ? 'drawer-overlay' : 'modal-overlay';
+  const contentClass = isDrawer ? 'drawer-content' : 'modal-content';
+  const headerClass = isDrawer ? 'drawer-header' : 'modal-header';
+  const bodyClass = isDrawer ? 'drawer-body' : 'modal-body';
+  const footerClass = isDrawer ? 'drawer-footer' : 'modal-footer';
+
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h3>{title}</h3>
+    <div className={overlayClass} onClick={onClose}>
+      <div className={contentClass} onClick={(e) => e.stopPropagation()}>
+        <div className={headerClass}>
+          <h3 style={{ fontSize: '1.2rem', fontFamily: 'var(--font-family-heading)' }}>{title}</h3>
           <button 
             onClick={onClose} 
             style={{ 
               background: 'none', 
               border: 'none', 
-              fontSize: '1.25rem', 
+              fontSize: '1.5rem', 
               cursor: 'pointer',
-              color: 'var(--text-secondary)'
+              color: 'var(--text-secondary)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              lineHeight: 1,
+              padding: '4px'
             }}
           >
             &times;
           </button>
         </div>
-        <div className="modal-body">
+        <div className={bodyClass}>
           {children}
         </div>
         {footer && (
-          <div className="modal-footer">
+          <div className={footerClass}>
             {footer}
           </div>
         )}
@@ -52,3 +64,4 @@ const Modal = ({ isOpen, onClose, title, children, footer }) => {
 };
 
 export default Modal;
+

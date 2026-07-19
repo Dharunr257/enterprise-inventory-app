@@ -102,7 +102,7 @@ export const CategoryDistributionChart = ({ data = [] }) => {
               <div style={{
                 width: `${percent}%`,
                 height: '100%',
-                backgroundColor: 'var(--color-primary)',
+                background: 'linear-gradient(90deg, var(--color-primary), var(--color-primary-hover))',
                 borderRadius: '4px',
                 transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)'
               }}></div>
@@ -139,6 +139,17 @@ export const MonthlyTrendChart = ({ data = [] }) => {
   return (
     <div className="chart-container">
       <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto' }}>
+        <defs>
+          <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--color-primary)" />
+            <stop offset="100%" stopColor="var(--color-primary-hover)" stopOpacity="0.3" />
+          </linearGradient>
+          <linearGradient id="barGradientHover" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--color-primary-hover)" />
+            <stop offset="100%" stopColor="var(--color-primary)" stopOpacity="0.6" />
+          </linearGradient>
+        </defs>
+
         {/* Y Axis Grid lines */}
         {[0, 0.25, 0.5, 0.75, 1].map((ratio, idx) => {
           const y = paddingTop + graphHeight * (1 - ratio);
@@ -186,17 +197,16 @@ export const MonthlyTrendChart = ({ data = [] }) => {
                 y={y}
                 width={w}
                 height={Math.max(barHeight, 2)}
-                rx="4"
-                fill="var(--color-primary)"
-                opacity="0.85"
+                rx="6"
+                fill="url(#barGradient)"
                 style={{ transition: 'all 0.3s ease', cursor: 'pointer' }}
                 onMouseEnter={(e) => {
-                  e.target.setAttribute('opacity', '1');
-                  e.target.setAttribute('fill', 'var(--color-primary-hover)');
+                  e.target.setAttribute('fill', 'url(#barGradientHover)');
+                  e.target.setAttribute('style', 'transform: scaleY(1.02); transform-origin: bottom; transition: all 0.2s ease; cursor: pointer;');
                 }}
                 onMouseLeave={(e) => {
-                  e.target.setAttribute('opacity', '0.85');
-                  e.target.setAttribute('fill', 'var(--color-primary)');
+                  e.target.setAttribute('fill', 'url(#barGradient)');
+                  e.target.setAttribute('style', 'transition: all 0.2s ease; cursor: pointer;');
                 }}
               />
               {/* Tooltip value */}

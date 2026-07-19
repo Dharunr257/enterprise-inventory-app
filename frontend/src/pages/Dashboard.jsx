@@ -8,6 +8,64 @@ const Dashboard = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const { addToast } = useToast();
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [consoleOpen, setConsoleOpen] = useState(true);
+  const [logs, setLogs] = useState([
+    { id: 1, time: '14:48:12', type: 'system', text: 'Deployment controller initialized successfully.' },
+    { id: 2, time: '14:48:13', type: 'info', text: 'Checking cluster namespace \'inventory-system\' status...' },
+    { id: 3, time: '14:48:15', type: 'success', text: 'Namespace verified. Pods: backend (1/1), frontend (1/1), mysql (1/1) ready.' },
+    { id: 4, time: '14:50:00', type: 'info', text: 'ArgoCD polling repository: Dharunr257/enterprise-inventory-app...' },
+    { id: 5, time: '14:50:02', type: 'success', text: 'Synced with HEAD commit (no changes detected).' },
+  ]);
+
+  // Digital Clock Update
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Live GitOps logs stream simulator
+  useEffect(() => {
+    const logTemplates = [
+      { type: 'info', text: 'ArgoCD sync loop running: checking commit history...' },
+      { type: 'success', text: 'Current deployment is in sync with repository main branch (revision: HEAD).' },
+      { type: 'info', text: 'Kubernetes ingress controller routing checks passed.' },
+      { type: 'system', text: 'Garbage collection: cleaning up orphaned ReplicaSets...' },
+      { type: 'info', text: 'Verifying liveness / readiness probes for container group: ims-backend.' },
+      { type: 'success', text: 'Probe checklist complete: all service containers healthy.' },
+      { type: 'warning', text: 'Database resource load: pool capacity normal (1/10 active connections).' },
+      { type: 'info', text: 'Kubernetes API server reports namespace \'inventory-system\' resources synced.' }
+    ];
+
+    const logTimer = setInterval(() => {
+      const randomTemplate = logTemplates[Math.floor(Math.random() * logTemplates.length)];
+      const now = new Date();
+      const timeStr = now.toTimeString().split(' ')[0];
+      setLogs(prev => {
+        const nextLogs = [...prev, {
+          id: Date.now(),
+          time: timeStr,
+          type: randomTemplate.type,
+          text: randomTemplate.text
+        }];
+        return nextLogs.slice(-12); // keep last 12 logs
+      });
+    }, 7000);
+
+    return () => clearInterval(logTimer);
+  }, []);
+
+  // Auto scroll terminal logs
+  useEffect(() => {
+    if (consoleOpen) {
+      const term = document.getElementById('terminal-body');
+      if (term) {
+        term.scrollTop = term.scrollHeight;
+      }
+    }
+  }, [logs, consoleOpen]);
 
   const fetchDashboardData = async () => {
     setLoading(true);
@@ -45,55 +103,121 @@ const Dashboard = () => {
 
   return (
     <div className="page-container">
-      {/* GitOps Delivery Control Center Status Header */}
+      {/* Dynamic Greetings & GitOps Control Panel Header */}
       <div className="panel-card" style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'space-between', 
-        padding: '16px 24px', 
-        marginBottom: '24px', 
-        borderLeft: '4px solid var(--color-success)',
-        background: 'var(--bg-card)',
-        borderRadius: 'var(--radius-md)',
-        boxShadow: 'var(--shadow-sm)'
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+        gap: '24px',
+        padding: '24px', 
+        marginBottom: '12px', 
+        borderLeft: '4px solid var(--color-primary)',
+        background: 'linear-gradient(135deg, var(--color-primary-light), var(--bg-card))',
+        borderRadius: 'var(--radius-lg)',
+        boxShadow: 'var(--shadow-md)'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          {/* Glowing Green Sync Icon */}
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{
-              width: '12px',
-              height: '12px',
-              borderRadius: '50%',
-              backgroundColor: 'var(--color-success)',
-              display: 'inline-block'
-            }}></span>
-            <span style={{
-              width: '24px',
-              height: '24px',
-              borderRadius: '50%',
-              backgroundColor: 'var(--color-success)',
-              opacity: '0.2',
-              position: 'absolute',
-              animation: 'spin 2s linear infinite',
-              display: 'inline-block',
-              transform: 'scale(1.5)'
-            }}></span>
-          </div>
+        {/* Left Side: Welcome Greeting & Real-time Clock */}
+        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '8px' }}>
           <div>
-            <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '600' }}>GitOps Cluster Deployment</h4>
-            <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-              Environment: <strong style={{ color: 'var(--text-primary)' }}>Production-K8s</strong> • Namespace: <strong style={{ color: 'var(--text-primary)' }}>inventory-system</strong>
+            <span style={{ 
+              fontSize: '0.75rem', 
+              fontWeight: '700', 
+              color: 'var(--color-primary)', 
+              textTransform: 'uppercase', 
+              letterSpacing: '0.05em' 
+            }}>
+              System Console
+            </span>
+            <h2 style={{ fontSize: '1.6rem', fontWeight: '700', marginTop: '2px', color: 'var(--text-primary)' }}>
+              Welcome back, Dharun!
+            </h2>
+            <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+              Here is your GitOps deployment and warehouse metrics dashboard.
             </p>
           </div>
-        </div>
-        <div style={{ display: 'flex', gap: '24px', alignItems: 'center', fontSize: '0.8rem' }}>
-          <div style={{ textAlign: 'right' }}>
-            <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: '600' }}>Argo CD Sync</span>
-            <span style={{ fontWeight: '600', color: 'var(--color-success)' }}>Synced (HEAD)</span>
+          
+          {/* Real-time Clock Widget */}
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '8px', 
+            fontSize: '0.85rem', 
+            color: 'var(--text-secondary)',
+            marginTop: '8px',
+            background: 'rgba(255,255,255,0.2)',
+            padding: '6px 12px',
+            borderRadius: '20px',
+            width: 'fit-content',
+            backdropFilter: 'blur(4px)',
+            border: '1px solid rgba(255,255,255,0.1)'
+          }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+            <span>
+              {currentTime.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })} •{' '}
+              <strong style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-family-mono)' }}>
+                {currentTime.toLocaleTimeString()}
+              </strong>
+            </span>
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: '600' }}>Pipeline Status</span>
-            <span style={{ fontWeight: '600', color: 'var(--color-primary)' }}>Active (paths-filtered)</span>
+        </div>
+
+        {/* Right Side: GitOps Status Control Room */}
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          justifyContent: 'center',
+          gap: '12px',
+          background: 'rgba(0, 0, 0, 0.03)',
+          padding: '16px',
+          borderRadius: 'var(--radius-md)',
+          border: '1px solid var(--border-color)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{
+                  width: '10px',
+                  height: '10px',
+                  borderRadius: '50%',
+                  backgroundColor: 'var(--color-success)',
+                  display: 'inline-block'
+                }}></span>
+                <span style={{
+                  width: '20px',
+                  height: '20px',
+                  borderRadius: '50%',
+                  backgroundColor: 'var(--color-success)',
+                  opacity: '0.2',
+                  position: 'absolute',
+                  animation: 'spin 2.5s linear infinite',
+                  display: 'inline-block',
+                  transform: 'scale(1.4)'
+                }}></span>
+              </div>
+              <div>
+                <h4 style={{ margin: 0, fontSize: '0.875rem', fontWeight: '600' }}>GitOps Cluster Deployment</h4>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Namespace: inventory-system</span>
+              </div>
+            </div>
+            <span className="badge badge-success" style={{ fontSize: '0.65rem' }}>Active</span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', borderTop: '1px solid var(--border-color)', paddingTop: '10px' }}>
+            <div>
+              <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: '600' }}>Argo CD Sync</span>
+              <span style={{ fontWeight: '600', color: 'var(--color-success)', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                Synced (HEAD)
+              </span>
+            </div>
+            <div>
+              <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: '600' }}>Target cluster</span>
+              <span style={{ fontWeight: '600', color: 'var(--color-primary)', fontSize: '0.8rem' }}>Production-K8s</span>
+            </div>
           </div>
         </div>
       </div>
@@ -331,6 +455,57 @@ const Dashboard = () => {
             )}
           </div>
         </div>
+      </div>
+
+      {/* Live GitOps Console */}
+      <div className="panel-card" style={{ marginTop: '12px' }}>
+        <div 
+          className="panel-header" 
+          style={{ cursor: 'pointer', userSelect: 'none' }} 
+          onClick={() => setConsoleOpen(!consoleOpen)}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              backgroundColor: '#10b981',
+              display: 'inline-block',
+              boxShadow: '0 0 8px #10b981'
+            }}></span>
+            <h3 className="panel-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              GitOps Cluster Sync Logs
+            </h3>
+          </div>
+          <button style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--text-secondary)',
+            cursor: 'pointer',
+            fontSize: '0.8rem',
+            fontWeight: '600'
+          }}>
+            {consoleOpen ? 'COLLAPSE' : 'EXPAND'} LOGS
+          </button>
+        </div>
+        
+        {consoleOpen && (
+          <div className="terminal-console">
+            <div className="terminal-header">
+              <span>console@k8s-cluster:~/inventory-system</span>
+              <span>LIVE LOG STREAM</span>
+            </div>
+            <div className="terminal-body" id="terminal-body">
+              {logs.map((log) => (
+                <div key={log.id} className={`terminal-line ${log.type}`}>
+                  <span className="time">[{log.time}]</span>
+                  <span className="status-tag">[{log.type.toUpperCase()}]</span>
+                  <span>{log.text}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

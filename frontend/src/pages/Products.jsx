@@ -303,6 +303,7 @@ const Products = () => {
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
         title={selectedProduct ? 'Edit Product SKU' : 'Create Product Entry'}
+        type="drawer"
         footer={
           <>
             <button className="btn btn-secondary" onClick={() => setIsFormOpen(false)}>Cancel</button>
