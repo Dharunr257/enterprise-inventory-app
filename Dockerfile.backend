@@ -1,24 +1,21 @@
 # Production Node Dockerfile for IMS Backend
+
 FROM node:18-alpine
 
-# Set working directory
 WORKDIR /usr/src/app
 
-# Copy dependency configuration
-COPY package*.json ./
+# Copy dependency files
+COPY backend/package*.json ./
 
-# Install only production dependencies
-RUN npm ci --only=production
+# Install production dependencies
+RUN npm ci --omit=dev
 
-# Copy application files
-COPY . .
+# Copy backend source code
+COPY backend/ .
 
-# Expose API port
 EXPOSE 5000
 
-# Set running environment variables
 ENV NODE_ENV=production
 ENV PORT=5000
 
-# Execute server command
 CMD ["node", "server.js"]
