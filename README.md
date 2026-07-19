@@ -215,4 +215,4 @@ The pipeline inside [ci-cd.yml](file:///.github/workflows/ci-cd.yml) implements 
      * `k8s/deployment-frontend.yaml`
      * `k8s/deployment-backend.yaml`
 4. **Git Commit & Push**:
-   * Commits the updated manifests back to the repo under `chore: update image tags to [sha] [skip ci]` to trigger GitOps agents (like ArgoCD) to synchronize the deployment state inside the cluster.
+   * Commits the updated manifests back to the repo under `chore: update image tags to [sha] [skip ci]` to trigger GitOps agents (like ArgoCD) to synchronize the deployment state inside the cluster..
