@@ -5,83 +5,138 @@ on:
     branches:
       - main
     paths:
-      - 'frontend/**'
-      - 'backend/**'
-      - 'k8s/**'
-      - '.github/workflows/ci-cd.yml'
+      - "frontend/**"
+      - "backend/**"
+      - ".github/workflows/**"
+      - "Dockerfile.backend"
+      - "Dockerfile.frontend"
 
-concurrency:
-  group: gitops
-  cancel-in-progress: true
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REGISTRY: 208851973471.dkr.ecr.us-east-1.amazonaws.com
+
+  FRONTEND_REPOSITORY: inventory-frontend
+  BACKEND_REPOSITORY: inventory-backend
 
 jobs:
-  build-and-push:
-    # Prevent infinite loop caused by workflow commits
-    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+  build-and-deploy:
 
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
+
+      ####################################################
+      # Checkout Application Repository
+      ####################################################
+
+      - name: Checkout Application Repository
         uses: actions/checkout@v4
+
+      ####################################################
+      # Configure AWS Credentials
+      ####################################################
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          fetch-depth: 0
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
       ####################################################
-      # Build & Push Frontend
+      # Login to Amazon ECR
       ####################################################
 
-      - name: Build and Push Frontend Image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./frontend
-          file: ./Dockerfile.frontend
-          push: true
-          tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/inventory-frontend:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/inventory-frontend:${{ github.sha }}
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
 
       ####################################################
-      # Build & Push Backend
+      # Generate Image Tag
       ####################################################
 
-      - name: Build and Push Backend Image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./backend
-          file: ./Dockerfile.backend
-          push: true
-          tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/inventory-backend:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/inventory-backend:${{ github.sha }}
-
-      ####################################################
-      # Update Kubernetes Manifests
-      ####################################################
-
-      - name: Update Frontend Image Tag
+      - name: Generate Image Tag
         run: |
-          sed -i -E \
-          "s|image: .*/inventory-frontend:[a-zA-Z0-9._-]+|image: ${{ secrets.DOCKERHUB_USERNAME }}/inventory-frontend:${{ github.sha }}|g" \
-          k8s/deployment-frontend.yaml
+          echo "IMAGE_TAG=${GITHUB_SHA::7}" >> $GITHUB_ENV
 
-      - name: Update Backend Image Tag
+      ####################################################
+      # Build Backend Image
+      ####################################################
+
+      - name: Build Backend Docker Image
         run: |
-          sed -i -E \
-          "s|image: .*/inventory-backend:[a-zA-Z0-9._-]+|image: ${{ secrets.DOCKERHUB_USERNAME }}/inventory-backend:${{ github.sha }}|g" \
-          k8s/deployment-backend.yaml
+          docker build \
+            -f Dockerfile.backend \
+            -t $ECR_REGISTRY/$BACKEND_REPOSITORY:$IMAGE_TAG \
+            -t $ECR_REGISTRY/$BACKEND_REPOSITORY:latest \
+            .
+
+      ####################################################
+      # Push Backend Image
+      ####################################################
+
+      - name: Push Backend Docker Image
+        run: |
+          docker push $ECR_REGISTRY/$BACKEND_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$BACKEND_REPOSITORY:latest
+
+      ####################################################
+      # Build Frontend Image
+      ####################################################
+
+      - name: Build Frontend Docker Image
+        run: |
+          docker build \
+            -f Dockerfile.frontend \
+            -t $ECR_REGISTRY/$FRONTEND_REPOSITORY:$IMAGE_TAG \
+            -t $ECR_REGISTRY/$FRONTEND_REPOSITORY:latest \
+            .
+
+      ####################################################
+      # Push Frontend Image
+      ####################################################
+
+      - name: Push Frontend Docker Image
+        run: |
+          docker push $ECR_REGISTRY/$FRONTEND_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$FRONTEND_REPOSITORY:latest
+
+      ####################################################
+      # Clone GitOps Repository
+      ####################################################
+
+      - name: Clone GitOps Repository
+        run: |
+          git clone https://x-access-token:${{ secrets.GITOPS_PAT }}@github.com/Dharunr257/enterprise-gitops.git
+
+      ####################################################
+      # Install yq
+      ####################################################
+
+      - name: Install yq
+        run: |
+          sudo wget -O /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      ####################################################
+      # Update Helm values.yaml
+      ####################################################
+
+      - name: Update Helm Image Tags
+        run: |
+
+          yq -i '
+          .frontend.image.tag = env(IMAGE_TAG) |
+          .backend.image.tag = env(IMAGE_TAG)
+          ' enterprise-gitops/inventory-app-helm/values.yaml
 
       ####################################################
       # Commit Changes
       ####################################################
 
-      - name: Commit Updated Manifests
+      - name: Commit and Push GitOps Changes
         run: |
 
           cd enterprise-gitops
@@ -93,8 +148,10 @@ jobs:
           git add inventory-app-helm/values.yaml
 
           if git diff --cached --quiet; then
-            echo "No manifest changes."
-          else
-            git commit -m "chore: update image tags to ${{ github.sha }} [skip ci]"
-            git push
+            echo "No changes detected."
+            exit 0
           fi
+
+          git commit -m "Update inventory application image to ${IMAGE_TAG}"
+
+          git push
